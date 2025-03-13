@@ -1,5 +1,11 @@
+import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn import preprocessing
+import numpy as np
 
-df=pd.read_csv('harry_potter_1000_students.csv', sep=',')
-df.head()
+from sklearn.model_selection import train_test_split
+
+from sklearn import preprocessing
+from sklearn.decomposition import PCA
+url=r"D:\Universidad\2º Master\2 Cuatri\AprendizajeAutomatico\GitHubtomasito\Trabajo01\harry_potter_1000_students.csv"
+df_orig=pd.read_csv(url, na_values=["?"])
+print(df_orig.head())
