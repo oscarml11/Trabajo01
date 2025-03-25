@@ -55,11 +55,11 @@ print('\nBalanceado:', X_train.shape,  y_train.shape)
 unique, counts = np.unique(y_train, return_counts=True)
 print(dict(zip(unique, counts)))
 
-# scaler = preprocessing.StandardScaler()
-# scaler.fit(X_train) # fit realiza los cálculos y los almacena
+scaler = preprocessing.StandardScaler()
+scaler.fit(X_train) # fit realiza los cálculos y los almacena
 
-# X_train = scaler.transform(X_train) # aplica los cálculos sobre el conjunto de datos de entrada para escalarlos
-# print(X_train[0:5])
+X_train = scaler.transform(X_train) # aplica los cálculos sobre el conjunto de datos de entrada para escalarlos
+print(X_train[0:5])
 
 mypca = PCA()
 mypca.fit(X_train)
@@ -77,20 +77,20 @@ acumvar = variance.cumsum()
 for i in range(len(acumvar)):
     print(f" {(i+1):2} componentes: {acumvar[i]:.8f} ")
 
-# mypca2 = PCA(n_components=2)
-# mypca2.fit(X_train)
-# values_proj2 = mypca2.transform(X_train)
+mypca2 = PCA(n_components=7)
+mypca2.fit(X_train)
+values_proj2 = mypca2.transform(X_train)
 
-# X_projected2 = mypca2.inverse_transform(values_proj2)
-# loss2 = ((X_train - X_projected2) ** 2).mean()
-# print("Projection loss (2 components): " + str(loss2))
+X_projected2 = mypca2.inverse_transform(values_proj2)
+loss2 = ((X_train - X_projected2) ** 2).mean()
+print("Projection los (2 components): " + str(loss2))
 
-# plt.figure()
-# plt.subplot(1,2,1) # 1 - numrows, 2 - numcols, 1 - index
-# plt.title("Datos originales con dos atributos")
-# plt.scatter(X_train[: ,0] , X_train[: ,1] ,marker='o' ,c=y_train)
-# plt.subplot(1,2,2) # 1 - numrows, 2 - numcols, 2 - index
-# plt.scatter(values_proj2[: ,0] , values_proj2[: ,1],marker='o' ,c=y_train)
-# plt.title("Proyección PCA con 2 componentes")
-# plt.subplots_adjust(right=1.9) # Distancia a la derecha
-# plt.show()
+plt.figure()
+plt.subplot(1,2,1) # 1 - numrows, 2 - numcols, 1 - index
+plt.title("Datos originales con dos atributos")
+plt.scatter(X_train[: ,0] , X_train[: ,1] ,marker='o' ,c=y_train)
+plt.subplot(1,2,2) # 1 - numrows, 2 - numcols, 2 - index
+plt.scatter(values_proj2[: ,0] , values_proj2[: ,1],marker='o' ,c=y_train)
+plt.title("Proyección PCA con 2 componentes")
+plt.subplots_adjust(right=1.9) # Distancia a la derecha
+plt.show()
