@@ -79,12 +79,12 @@ def train_knn(X_train, X_test, y_train, y_test, k):
     y_predict_knn = neigh.predict(X_test)
     print(f"Tiempo de predicción KNN = {(time.time() - ini)*1000:.3f} ms")
     
-    print("Exactitud media obtenida con k-NN:", neigh.score(X_test, y_test))
-    cm_kNN = confusion_matrix(y_test, y_predict_knn, labels=[0,1,2,3])
-    disp_knn = ConfusionMatrixDisplay(confusion_matrix=cm_kNN, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
-    disp_knn.plot(cmap=plt.cm.Blues)
-    plt.title("Matriz de confusión k-NN")
-    plt.show()
+    # print("Exactitud media obtenida con k-NN:", neigh.score(X_test, y_test))
+    # cm_kNN = confusion_matrix(y_test, y_predict_knn, labels=[0,1,2,3])
+    # disp_knn = ConfusionMatrixDisplay(confusion_matrix=cm_kNN, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
+    # disp_knn.plot(cmap=plt.cm.Blues)
+    # plt.title("Matriz de confusión k-NN")
+    # plt.show(block=False)
 
 def train_svm(X_train, X_test, y_train, y_test):
     clf_svm = svm.SVC(kernel='linear')
@@ -96,12 +96,12 @@ def train_svm(X_train, X_test, y_train, y_test):
     y_predict_svm = clf_svm.predict(X_test)
     print(f"Tiempo de predicción SVM = {(time.time() - ini)*1000:.3f} ms")
     
-    print("Exactitud media obtenida con SVM:", clf_svm.score(X_test, y_test))
-    cm_svm = confusion_matrix(y_test, y_predict_svm, labels=[0,1,2,3])
-    disp_svm = ConfusionMatrixDisplay(confusion_matrix=cm_svm, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
-    disp_svm.plot(cmap=plt.cm.Blues)
-    plt.title("Matriz de confusión SVM")
-    plt.show()
+    # print("Exactitud media obtenida con SVM:", clf_svm.score(X_test, y_test))
+    # cm_svm = confusion_matrix(y_test, y_predict_svm, labels=[0,1,2,3])
+    # disp_svm = ConfusionMatrixDisplay(confusion_matrix=cm_svm, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
+    # disp_svm.plot(cmap=plt.cm.Blues)
+    # plt.title("Matriz de confusión SVM")
+    # plt.show()
 
 def main():
     df = cargar_base()
