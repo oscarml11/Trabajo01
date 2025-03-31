@@ -49,22 +49,32 @@ def scale_data(X_train, X_test):
     X_test_scaled = scaler.transform(X_test)
     return X_train_scaled, X_test_scaled
 
-def apply_pca(X_train, X_test, n_components):
-    if n_components:
+def apply_pca(X_train, X_test, n_components, varianza):
+    if n_components is None and varianza != 1:
+        pca = PCA()
+        X_train_pca = pca.fit_transform(X_train)
+        X_test_pca = pca.transform(X_test)
+
+        # Cálculo de varianza explicada
+        print("\nVarianza que aporta cada componente:")
+        variance = pca.explained_variance_ratio_
+        print(variance)
+
+        print("\nVarianza acumulada:")
+        acumvar = variance.cumsum()
+
+        for i in range(len(acumvar)):
+            print(f" {(i+1):2} componentes: {acumvar[i]:.8f}")
+        
+        varianza = 1
+        return X_train_pca, X_test_pca, varianza
+    
+    else:
         pca = PCA(n_components=n_components)
         X_train_pca = pca.fit_transform(X_train)
         X_test_pca = pca.transform(X_test)
-        return X_train_pca, X_test_pca
-    print("\n Varianza que aporta cada componente:")
-    variance = mypca.explained_variance_ratio_
-    print(variance)
 
-    print("\n Varianza acumulada:")
-    acumvar = variance.cumsum()
-
-    for i in range(len(acumvar)):
-        print(f" {(i+1):2} componentes: {acumvar[i]:.8f} ")
-    return X_train, X_test
+        return X_train_pca, X_test_pca, varianza
 
 def evaluate_model(y_test, y_pred, classifier, random_state, method, n_components, k, train_time, predict_time, results):
     accuracy = np.mean(y_pred == y_test)
@@ -83,18 +93,18 @@ def evaluate_model(y_test, y_pred, classifier, random_state, method, n_component
         "Prediction Time (ms)": predict_time * 1000
     })
 
-# def plot_confusion_matrix(cm, title, random_state, method, n_components, classifier, k):
-#     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
-#     disp.plot(cmap=plt.cm.Blues)
-#     if k == "Linear":
-#         plt.title(f"{title}\nRandom State: {random_state}, Balanceo: {method}, PCA: {n_components}, Técnica: {classifier}, Kernel: {k}")
-#         # plt.show(block=False)
-#     else:
-#         plt.title(f"{title}\nRandom State: {random_state}, Balanceo: {method}, PCA: {n_components}, Técnica: {classifier}, K: {k}")
-#         # plt.show(block=False)
-#     filename = f"confusion_matrix_{classifier}_RS{random_state}_Bal{method}_PCA{n_components}_K{k}.png"
-#     plt.savefig(filename)
-#     plt.close()
+def plot_confusion_matrix(cm, title, random_state, method, n_components, classifier, k):
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
+    disp.plot(cmap=plt.cm.Blues)
+    if k == "Linear":
+        plt.title(f"{title}\nRandom State: {random_state}, Balanceo: {method}, PCA: {n_components}, Técnica: {classifier}, Kernel: {k}")
+        # plt.show(block=False)
+    else:
+        plt.title(f"{title}\nRandom State: {random_state}, Balanceo: {method}, PCA: {n_components}, Técnica: {classifier}, K: {k}")
+        # plt.show(block=False)
+    filename = f"confusion_matrix_{classifier}_RS{random_state}_Bal{method}_PCA{n_components}_K{k}.png"
+    plt.savefig(filename)
+    plt.close()
 
 def train_knn(X_train, X_test, y_train, y_test, k, random_state, method, n_components, results):
     neigh = KNeighborsClassifier(n_neighbors=k)
@@ -108,8 +118,8 @@ def train_knn(X_train, X_test, y_train, y_test, k, random_state, method, n_compo
     
     evaluate_model(y_test, y_predict_knn, "KNN", random_state, method, n_components, k, train_time, predict_time, results)
     
-    # cm_knn = confusion_matrix(y_test, y_predict_knn, labels=[0,1,2,3])
-    # plot_confusion_matrix(cm_knn, "Matriz de confusión k-NN", random_state, method, n_components, "KNN", k)
+    cm_knn = confusion_matrix(y_test, y_predict_knn, labels=[0,1,2,3])
+    plot_confusion_matrix(cm_knn, "Matriz de confusión k-NN", random_state, method, n_components, "KNN", k)
 
 def train_svm(X_train, X_test, y_train, y_test, random_state, method, n_components, results):
     clf_svm = svm.SVC(kernel='linear')
@@ -123,14 +133,15 @@ def train_svm(X_train, X_test, y_train, y_test, random_state, method, n_componen
     
     evaluate_model(y_test, y_predict_svm, "SVM", random_state, method, n_components, "Linear", train_time, predict_time, results)
     
-    # cm_svm = confusion_matrix(y_test, y_predict_svm, labels=[0,1,2,3])
-    # plot_confusion_matrix(cm_svm, "Matriz de confusión SVM", random_state, method, n_components, "SVM", "Linear")
+    cm_svm = confusion_matrix(y_test, y_predict_svm, labels=[0,1,2,3])
+    plot_confusion_matrix(cm_svm, "Matriz de confusión SVM", random_state, method, n_components, "SVM", "Linear")
 
 def main():
     df = cargar_base()
     df = codificacion_caracteristicas(df)
     X, y = extract_features_labels(df)
     results = []
+    varianza =0
     
     for random_state in range(1, 6):
         X_train, X_test, y_train, y_test = split_data(X, y, random_state)
@@ -138,7 +149,7 @@ def main():
             X_train_bal, y_train_bal = balance_data(X_train, y_train, method)
             X_train_scaled, X_test_scaled = scale_data(X_train_bal, X_test)
             for n_components in [None, 7, 8]:
-                X_train_pca, X_test_pca = apply_pca(X_train_scaled, X_test_scaled, n_components)
+                X_train_pca, X_test_pca, varianza = apply_pca(X_train_scaled, X_test_scaled, n_components, varianza)
                 for k in [3, 5, 7, 9]:
                     train_knn(X_train_pca, X_test_pca, y_train_bal, y_test, k, random_state, method, n_components, results)
                 train_svm(X_train_pca, X_test_pca, y_train_bal, y_test, random_state, method, n_components, results)
