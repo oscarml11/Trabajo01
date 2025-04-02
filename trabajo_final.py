@@ -15,9 +15,6 @@ from sklearn import svm
 def cargar_base():
     direccion = r"C:\Users\tomas\Desktop\Google Drive\UDC\MASTER\2º MASTER\2º CUATRI\Introducción al Aprendizaje Automático\GitHub\Trabajo01\harry_potter_1000_students.csv"
     df = pd.read_csv(direccion, na_values=["?"])
-    print(f"Tamaño de la base de datos: {df.shape}")
-    print(f"Cantidad de valores nulos: \n{df.isnull().sum()}\n")
-    print(f"Número de alumnos por casa: \n{df['House'].value_counts()}")
     return df
 
 def codificacion_caracteristicas(df):
@@ -25,15 +22,12 @@ def codificacion_caracteristicas(df):
     df_encoded = encoder.fit_transform(df[['Blood Status', 'House']])
     df['Blood Status'] = df_encoded[:, 0]
     df['House'] = df_encoded[:, 1]
-    print(df.head())
     return df
 
 def extract_features_labels(df):
     columnas_caracteristicas = ['Blood Status', 'Bravery', 'Intelligence', 'Loyalty', 'Ambition', 'Dark Arts Knowledge', 'Quidditch Skills', 'Dueling Skills', 'Creativity']
     X = np.asarray(df[columnas_caracteristicas])
     y = np.asarray(df['House'])
-    print("Matriz de características:", X[:5])
-    print("Matriz de clases:", y[:5])
     return X, y
 
 def split_data(X, y, random_state):
@@ -47,66 +41,107 @@ def balance_data(X_train, y_train, method):
     else:
         return X_train, y_train
     
-    X_train_bal, y_train_bal = sm.fit_resample(X_train, y_train)
-    return X_train_bal, y_train_bal
+    return sm.fit_resample(X_train, y_train)
 
 def scale_data(X_train, X_test):
     scaler = preprocessing.StandardScaler()
-
-    scaler.fit(X_train)
-    X_train_scaled = scaler.transform(X_train)
-
-    scaler.fit(X_test)
+    X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-
     return X_train_scaled, X_test_scaled
 
-def apply_pca(X_train, X_test, n_components):
-    if n_components:
+def apply_pca(X_train, X_test, n_components, varianza):
+    if n_components is None and varianza != 1:
+        pca = PCA()
+        X_train_pca = pca.fit_transform(X_train)
+        X_test_pca = pca.transform(X_test)
+
+        # Cálculo de varianza explicada
+        print("\nVarianza que aporta cada componente:")
+        variance = pca.explained_variance_ratio_
+        print(variance)
+
+        print("\nVarianza acumulada:")
+        acumvar = variance.cumsum()
+
+        for i in range(len(acumvar)):
+            print(f" {(i+1):2} componentes: {acumvar[i]:.8f}")
+        
+        varianza = 1
+        return X_train_pca, X_test_pca, varianza
+    
+    else:
         pca = PCA(n_components=n_components)
         X_train_pca = pca.fit_transform(X_train)
         X_test_pca = pca.transform(X_test)
-        return X_train_pca, X_test_pca
-    return X_train, X_test
 
-def train_knn(X_train, X_test, y_train, y_test, k):
+        return X_train_pca, X_test_pca, varianza
+
+def evaluate_model(y_test, y_pred, classifier, random_state, method, n_components, k, train_time, predict_time, results):
+    accuracy = np.mean(y_pred == y_test)
+    num_errors = np.sum(y_pred != y_test)
+    num_correct = np.sum(y_pred == y_test)
+    results.append({
+        "Random State": random_state,
+        "Balancing Method": method if method else "None",
+        "PCA Components": n_components if n_components else "None",
+        "Classifier": classifier,
+        "K (if KNN) / Kernel (if SVM)": k if classifier == "KNN" else "Linear",
+        "Accuracy": accuracy,
+        "Errors": num_errors,
+        "Correct Predictions": num_correct,
+        "Training Time (ms)": train_time * 1000,
+        "Prediction Time (ms)": predict_time * 1000
+    })
+
+def plot_confusion_matrix(cm, title, random_state, method, n_components, classifier, k):
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
+    disp.plot(cmap=plt.cm.Blues)
+    if k == "Linear":
+        plt.title(f"{title}\nRandom State: {random_state}, Balanceo: {method}, PCA: {n_components}, Técnica: {classifier}, Kernel: {k}")
+        # plt.show(block=False)
+    else:
+        plt.title(f"{title}\nRandom State: {random_state}, Balanceo: {method}, PCA: {n_components}, Técnica: {classifier}, K: {k}")
+        # plt.show(block=False)
+    filename = f"confusion_matrix_{classifier}_RS{random_state}_Bal{method}_PCA{n_components}_K{k}.png"
+    plt.savefig(filename)
+    plt.close()
+
+def train_knn(X_train, X_test, y_train, y_test, k, random_state, method, n_components, results):
     neigh = KNeighborsClassifier(n_neighbors=k)
     ini = time.time()
     neigh.fit(X_train, y_train)
-    print(f"Tiempo entrenamiento KNN = {(time.time() - ini)*1000:.3f} ms")
+    train_time = time.time() - ini
     
     ini = time.time()
     y_predict_knn = neigh.predict(X_test)
-    print(f"Tiempo de predicción KNN = {(time.time() - ini)*1000:.3f} ms")
+    predict_time = time.time() - ini
     
-    # print("Exactitud media obtenida con k-NN:", neigh.score(X_test, y_test))
-    # cm_kNN = confusion_matrix(y_test, y_predict_knn, labels=[0,1,2,3])
-    # disp_knn = ConfusionMatrixDisplay(confusion_matrix=cm_kNN, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
-    # disp_knn.plot(cmap=plt.cm.Blues)
-    # plt.title("Matriz de confusión k-NN")
-    # plt.show(block=False)
+    evaluate_model(y_test, y_predict_knn, "KNN", random_state, method, n_components, k, train_time, predict_time, results)
+    
+    cm_knn = confusion_matrix(y_test, y_predict_knn, labels=[0,1,2,3])
+    plot_confusion_matrix(cm_knn, "Matriz de confusión k-NN", random_state, method, n_components, "KNN", k)
 
-def train_svm(X_train, X_test, y_train, y_test):
+def train_svm(X_train, X_test, y_train, y_test, random_state, method, n_components, results):
     clf_svm = svm.SVC(kernel='linear')
     ini = time.time()
     clf_svm.fit(X_train, y_train)
-    print(f"Tiempo entrenamiento SVM = {(time.time() - ini)*1000:.3f} ms")
+    train_time = time.time() - ini
     
     ini = time.time()
     y_predict_svm = clf_svm.predict(X_test)
-    print(f"Tiempo de predicción SVM = {(time.time() - ini)*1000:.3f} ms")
+    predict_time = time.time() - ini
     
-    # print("Exactitud media obtenida con SVM:", clf_svm.score(X_test, y_test))
-    # cm_svm = confusion_matrix(y_test, y_predict_svm, labels=[0,1,2,3])
-    # disp_svm = ConfusionMatrixDisplay(confusion_matrix=cm_svm, display_labels=['Gryffindor(0)','Hufflepuff(1)','Ravenclaw(2)','Slytherin(3)'])
-    # disp_svm.plot(cmap=plt.cm.Blues)
-    # plt.title("Matriz de confusión SVM")
-    # plt.show()
+    evaluate_model(y_test, y_predict_svm, "SVM", random_state, method, n_components, "Linear", train_time, predict_time, results)
+    
+    cm_svm = confusion_matrix(y_test, y_predict_svm, labels=[0,1,2,3])
+    plot_confusion_matrix(cm_svm, "Matriz de confusión SVM", random_state, method, n_components, "SVM", "Linear")
 
 def main():
     df = cargar_base()
     df = codificacion_caracteristicas(df)
     X, y = extract_features_labels(df)
+    results = []
+    varianza =0
     
     for random_state in range(1, 6):
         X_train, X_test, y_train, y_test = split_data(X, y, random_state)
@@ -114,10 +149,15 @@ def main():
             X_train_bal, y_train_bal = balance_data(X_train, y_train, method)
             X_train_scaled, X_test_scaled = scale_data(X_train_bal, X_test)
             for n_components in [None, 7, 8]:
-                X_train_pca, X_test_pca = apply_pca(X_train_scaled, X_test_scaled, n_components)
+                X_train_pca, X_test_pca, varianza = apply_pca(X_train_scaled, X_test_scaled, n_components, varianza)
                 for k in [3, 5, 7, 9]:
-                    train_knn(X_train_pca, X_test_pca, y_train_bal, y_test, k)
-                train_svm(X_train_pca, X_test_pca, y_train_bal, y_test)
+                    train_knn(X_train_pca, X_test_pca, y_train_bal, y_test, k, random_state, method, n_components, results)
+                train_svm(X_train_pca, X_test_pca, y_train_bal, y_test, random_state, method, n_components, results)
+    
+    df_results = pd.DataFrame(results)
+    df_results.to_csv("model_results.csv", index=False, float_format="%.3f")
+    print("Resultados guardados en 'model_results.csv'")
+    
 
 if __name__ == "__main__":
     main()
